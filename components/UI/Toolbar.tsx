@@ -2,20 +2,16 @@
 
 import { useMapStore } from '@/store/mapStore'
 import { useTracking } from '@/components/hooks/useTracking'
-import { useGPX } from '@/components/hooks/useGPX'
 
 interface ToolbarProps {
   onOpenGPXModal: () => void
+  onOpenHistory: () => void
   onCenterMap: () => void
 }
 
-export default function Toolbar({ onOpenGPXModal, onCenterMap }: ToolbarProps) {
-  const { isAddingWaypoint, setIsAddingWaypoint, clearAll } = useMapStore()
+export default function Toolbar({ onOpenGPXModal, onOpenHistory, onCenterMap }: ToolbarProps) {
+  const { isAddingWaypoint, setIsAddingWaypoint } = useMapStore()
   const { isTracking, toggle: toggleTracking, exportTrack, pointCount } = useTracking()
-
-  const handleWaypointToggle = () => {
-    setIsAddingWaypoint(!isAddingWaypoint)
-  }
 
   return (
     <div
@@ -29,12 +25,10 @@ export default function Toolbar({ onOpenGPXModal, onCenterMap }: ToolbarProps) {
         label={isTracking ? 'Stop' : 'Lacak'}
         icon={
           isTracking ? (
-            // Stop square
             <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
               <rect x="5" y="5" width="14" height="14" rx="2" />
             </svg>
           ) : (
-            // Record dot
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
               <circle cx="12" cy="12" r="10" />
               <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />
@@ -43,7 +37,7 @@ export default function Toolbar({ onOpenGPXModal, onCenterMap }: ToolbarProps) {
         }
       />
 
-      {/* GPX */}
+      {/* GPX Import */}
       <ToolBtn
         onClick={onOpenGPXModal}
         label="GPX"
@@ -57,7 +51,7 @@ export default function Toolbar({ onOpenGPXModal, onCenterMap }: ToolbarProps) {
         }
       />
 
-      {/* Export (only when track exists) */}
+      {/* Export GPX — only when track exists */}
       {pointCount > 0 && (
         <ToolBtn
           onClick={exportTrack}
@@ -72,10 +66,21 @@ export default function Toolbar({ onOpenGPXModal, onCenterMap }: ToolbarProps) {
         />
       )}
 
+      {/* History */}
+      <ToolBtn
+        onClick={onOpenHistory}
+        label="Riwayat"
+        icon={
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
+            <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
+          </svg>
+        }
+      />
+
       {/* Waypoint */}
       <ToolBtn
         active={isAddingWaypoint}
-        onClick={handleWaypointToggle}
+        onClick={() => setIsAddingWaypoint(!isAddingWaypoint)}
         label="Waypoint"
         icon={
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
@@ -99,27 +104,12 @@ export default function Toolbar({ onOpenGPXModal, onCenterMap }: ToolbarProps) {
           </svg>
         }
       />
-
-      {/* Clear */}
-      <ToolBtn
-        onClick={clearAll}
-        label="Hapus"
-        icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-          </svg>
-        }
-      />
     </div>
   )
 }
 
 function ToolBtn({
-  icon,
-  label,
-  onClick,
-  active = false,
+  icon, label, onClick, active = false,
 }: {
   icon: React.ReactNode
   label: string
@@ -129,14 +119,14 @@ function ToolBtn({
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center gap-1 px-3.5 py-2 rounded-xl border transition-all duration-200 min-w-[58px]
+      className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl border transition-all duration-200 min-w-[52px]
         ${active
           ? 'bg-[#00e5a0]/10 border-[#00e5a0] text-[#00e5a0]'
           : 'bg-[#111518] border-[#1f2a32] text-[#607d8b] hover:border-[#00e5a0] hover:text-[#00e5a0]'
         }`}
     >
       {icon}
-      <span className="text-[10px] uppercase tracking-wide font-condensed font-semibold">{label}</span>
+      <span className="text-[9px] uppercase tracking-wide font-condensed font-semibold leading-none">{label}</span>
     </button>
   )
 }

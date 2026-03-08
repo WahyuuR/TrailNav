@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { useMapStore } from '@/store/mapStore'
 import { useGPS } from '@/components/hooks/useGPS'
 import type { MapHandle } from '@/components/Map/MapContainer'
-import type { MapLayer } from '@/types'
+import type { MapLayer, GPXData } from '@/types'
 
 import TopBar from '@/components/UI/TopBar'
 import StatsPanel from '@/components/UI/StatsPanel'
@@ -13,6 +13,7 @@ import Toolbar from '@/components/UI/Toolbar'
 import ElevationChart from '@/components/UI/ElevationChart'
 import GPXModal from '@/components/UI/GPXModal'
 import LayerSwitcher from '@/components/UI/LayerSwitcher'
+import TrackHistoryPanel from '@/components/UI/TrackHistoryPanel'
 
 // Dynamic import — Leaflet requires browser APIs (no SSR)
 const MapContainer = dynamic(() => import('@/components/Map/MapContainer'), {
@@ -20,7 +21,10 @@ const MapContainer = dynamic(() => import('@/components/Map/MapContainer'), {
   loading: () => (
     <div className="fixed inset-0 bg-[#0a0d0f] flex items-center justify-center">
       <div className="text-center">
-        <div className="font-mono text-[#00e5a0] text-2xl font-bold mb-2">TRAILNAV</div>
+        <div className="font-mono text-[#00e5a0] text-2xl font-bold mb-2"
+          style={{ textShadow: '0 0 20px rgba(0,229,160,0.5)' }}>
+          TRAILNAV
+        </div>
         <div className="text-[#607d8b] text-sm">Memuat peta...</div>
       </div>
     </div>
@@ -30,7 +34,9 @@ const MapContainer = dynamic(() => import('@/components/Map/MapContainer'), {
 export default function Home() {
   const mapRef = useRef<MapHandle>(null)
   const [gpxModalOpen, setGPXModalOpen] = useState(false)
-  const { setActiveLayer } = useMapStore()
+  const [historyOpen, setHistoryOpen] = useState(false)
+
+  const { setActiveLayer, setGPXData } = useMapStore()
   const { startWatch } = useGPS()
 
   const handleCenterMap = useCallback(() => {
@@ -45,22 +51,27 @@ export default function Home() {
     setActiveLayer(layer)
   }, [setActiveLayer])
 
+  // Load a saved track from history into the map
+  const handleLoadTrack = useCallback((data: GPXData) => {
+    setGPXData(data)
+  }, [setGPXData])
+
   return (
     <main className="relative w-screen h-screen overflow-hidden">
-      {/* ── Map (base layer) ── */}
+      {/* ── Map ── */}
       <MapContainer ref={mapRef} />
 
       {/* ── Top bar ── */}
       <TopBar />
 
-      {/* ── Left panel: stats ── */}
+      {/* ── Left: stats ── */}
       <div className="fixed top-[60px] left-3.5 z-[100] pointer-events-none">
         <div className="pointer-events-auto">
           <StatsPanel />
         </div>
       </div>
 
-      {/* ── Right panel: map controls ── */}
+      {/* ── Right: map controls ── */}
       <div className="fixed top-[60px] right-3.5 z-[100] flex flex-col gap-2.5 pointer-events-none">
         <div className="pointer-events-auto flex flex-col gap-2.5">
           <LayerSwitcher onLayerChange={handleLayerChange} />
@@ -76,16 +87,22 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── Bottom toolbar ── */}
+      {/* ── Toolbar ── */}
       <Toolbar
         onOpenGPXModal={() => setGPXModalOpen(true)}
+        onOpenHistory={() => setHistoryOpen(true)}
         onCenterMap={handleCenterMap}
       />
 
-      {/* ── GPX modal ── */}
+      {/* ── Modals ── */}
       <GPXModal
         isOpen={gpxModalOpen}
         onClose={() => setGPXModalOpen(false)}
+      />
+      <TrackHistoryPanel
+        isOpen={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onLoadTrack={handleLoadTrack}
       />
     </main>
   )

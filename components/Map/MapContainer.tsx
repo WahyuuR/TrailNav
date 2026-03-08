@@ -10,14 +10,32 @@ import TrackLayer from './TrackLayer'
 import GPXLayer from './GPXLayer'
 import WaypointLayer from './WaypointLayer'
 
-// Inner component to expose map controls
+// Inner component — exposes map instance + handles auto-center on first GPS fix
 function MapController({
-  layerRef,
+  mapRef,
+  gpsRef,
 }: {
-  layerRef: React.MutableRefObject<ReturnType<typeof useMap> | null>
+  mapRef: React.MutableRefObject<ReturnType<typeof useMap> | null>
+  gpsRef: React.MutableRefObject<{ lat: number; lon: number } | null>
 }) {
   const map = useMap()
-  layerRef.current = map
+  const hasCenteredRef = useRef(false)
+  const { currentGPS } = useMapStore()
+
+  mapRef.current = map
+
+  // Auto-center ONCE on first GPS fix
+  useEffect(() => {
+    if (currentGPS && !hasCenteredRef.current) {
+      hasCenteredRef.current = true
+      map.setView([currentGPS.lat, currentGPS.lon], 16, { animate: true })
+    }
+    // Keep gpsRef in sync so imperative handle always reads latest coords
+    if (currentGPS) {
+      gpsRef.current = { lat: currentGPS.lat, lon: currentGPS.lon }
+    }
+  }, [currentGPS, map, gpsRef])
+
   return null
 }
 
@@ -29,18 +47,21 @@ export interface MapHandle {
 
 const MapContainer = forwardRef<MapHandle>((_, ref) => {
   const mapRef = useRef<ReturnType<typeof useMap> | null>(null)
-  const tileLayerRef = useRef<L.TileLayer | null>(null)
-  const { activeLayer, currentGPS } = useMapStore()
+  // Ref always holds latest GPS coords — avoids stale closure in useImperativeHandle
+  const gpsRef = useRef<{ lat: number; lon: number } | null>(null)
+  const { activeLayer } = useMapStore()
 
   useImperativeHandle(ref, () => ({
     centerOnLocation: () => {
-      if (mapRef.current && currentGPS) {
-        mapRef.current.setView([currentGPS.lat, currentGPS.lon], 16, { animate: true })
+      if (mapRef.current && gpsRef.current) {
+        mapRef.current.setView(
+          [gpsRef.current.lat, gpsRef.current.lon],
+          16,
+          { animate: true }
+        )
       }
     },
-    setLayer: (_layer: MapLayer) => {
-      // Layer changes handled via activeLayer in store + TileLayer key prop
-    },
+    setLayer: (_layer: MapLayer) => {},
     getMap: () => mapRef.current,
   }))
 
@@ -54,7 +75,6 @@ const MapContainer = forwardRef<MapHandle>((_, ref) => {
       zoomControl={false}
       attributionControl={false}
     >
-      {/* Dynamic tile layer — key forces remount on layer change */}
       <TileLayer
         key={activeLayer}
         url={activeConfig.url}
@@ -62,7 +82,7 @@ const MapContainer = forwardRef<MapHandle>((_, ref) => {
         maxZoom={activeConfig.maxZoom}
       />
 
-      <MapController layerRef={mapRef} />
+      <MapController mapRef={mapRef} gpsRef={gpsRef} />
       <LocationMarker />
       <TrackLayer />
       <GPXLayer />

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useMapStore } from '@/store/mapStore'
 import { useGPS } from './useGPS'
+import { useTrackHistory } from './useTrackHistory'
 import { exportGPX, downloadGPX } from '@/lib/gpxExporter'
 import { formatDuration } from '@/lib/geo'
 
@@ -23,6 +24,7 @@ export function useTracking() {
   } = useMapStore()
 
   const { startWatch, stopWatch } = useGPS()
+  const { saveSession } = useTrackHistory()
 
   // ─── Timer ─────────────────────────────────────────────
   useEffect(() => {
@@ -43,23 +45,32 @@ export function useTracking() {
     }
   }, [isTracking, trackStartTime])
 
-  // ─── Start / Stop ───────────────────────────────────────
+  // ─── Start ──────────────────────────────────────────────
   const start = useCallback(() => {
     storeStart()
     startWatch()
   }, [storeStart, startWatch])
 
-  const stop = useCallback(() => {
+  // ─── Stop + auto-save to IndexedDB ──────────────────────
+  const stop = useCallback(async () => {
     storeStop()
     stopWatch()
-  }, [storeStop, stopWatch])
+    // Save session if we have points
+    if (trackPoints.length > 2) {
+      try {
+        await saveSession(trackPoints, waypoints)
+      } catch (e) {
+        console.error('Failed to save track:', e)
+      }
+    }
+  }, [storeStop, stopWatch, trackPoints, waypoints, saveSession])
 
   const toggle = useCallback(() => {
     if (isTracking) stop()
     else start()
   }, [isTracking, start, stop])
 
-  // ─── Export ─────────────────────────────────────────────
+  // ─── Export GPX ─────────────────────────────────────────
   const exportTrack = useCallback(() => {
     if (trackPoints.length === 0) return
     const name = `TrailNav-${new Date().toISOString().slice(0, 10)}`
