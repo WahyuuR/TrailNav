@@ -1,10 +1,9 @@
 'use client'
 
-import { useRef, useState, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { useMapStore } from '@/store/mapStore'
+import { useMapStore, mapZoomIn, mapZoomOut, mapSetView } from '@/store/mapStore'
 import { useGPS } from '@/components/hooks/useGPS'
-import type { MapHandle } from '@/components/Map/MapContainer'
 import type { MapLayer, GPXData } from '@/types'
 
 import TopBar from '@/components/UI/TopBar'
@@ -15,7 +14,6 @@ import GPXModal from '@/components/UI/GPXModal'
 import LayerSwitcher from '@/components/UI/LayerSwitcher'
 import TrackHistoryPanel from '@/components/UI/TrackHistoryPanel'
 
-// Dynamic import — Leaflet requires browser APIs (no SSR)
 const MapContainer = dynamic(() => import('@/components/Map/MapContainer'), {
   ssr: false,
   loading: () => (
@@ -32,73 +30,63 @@ const MapContainer = dynamic(() => import('@/components/Map/MapContainer'), {
 })
 
 export default function Home() {
-  const mapRef = useRef<MapHandle>(null)
   const [gpxModalOpen, setGPXModalOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
-
-  const { setActiveLayer, setGPXData } = useMapStore()
-  const { startWatch } = useGPS()
+  const { setActiveLayer, setGPXData, currentGPS } = useMapStore()
+  const { getOnce } = useGPS()
 
   const handleCenterMap = useCallback(() => {
-    if (mapRef.current) {
-      mapRef.current.centerOnLocation()
+    if (currentGPS) {
+      mapSetView(currentGPS.lat, currentGPS.lon)
     } else {
-      startWatch()
+      getOnce()
     }
-  }, [startWatch])
+  }, [currentGPS, getOnce])
 
   const handleLayerChange = useCallback((layer: MapLayer) => {
     setActiveLayer(layer)
   }, [setActiveLayer])
 
-  // Load a saved track from history into the map
   const handleLoadTrack = useCallback((data: GPXData) => {
     setGPXData(data)
   }, [setGPXData])
 
   return (
     <main className="relative w-screen h-screen overflow-hidden">
-      {/* ── Map ── */}
-      <MapContainer ref={mapRef} />
+      <MapContainer />
 
-      {/* ── Top bar ── */}
       <TopBar />
 
-      {/* ── Left: stats ── */}
+      {/* Left: stats */}
       <div className="fixed top-[60px] left-3.5 z-[100] pointer-events-none">
         <div className="pointer-events-auto">
           <StatsPanel />
         </div>
       </div>
 
-      {/* ── Right: map controls ── */}
+      {/* Right: map controls */}
       <div className="fixed top-[60px] right-3.5 z-[100] flex flex-col gap-2.5 pointer-events-none">
         <div className="pointer-events-auto flex flex-col gap-2.5">
           <LayerSwitcher onLayerChange={handleLayerChange} />
-          <MapZoomBtn onClick={() => mapRef.current?.getMap()?.zoomIn()} label="+" />
-          <MapZoomBtn onClick={() => mapRef.current?.getMap()?.zoomOut()} label="−" />
+          <MapZoomBtn onClick={mapZoomIn} label="+" />
+          <MapZoomBtn onClick={mapZoomOut} label="−" />
         </div>
       </div>
 
-      {/* ── Elevation chart ── */}
+      {/* Elevation chart */}
       <div className="fixed bottom-0 left-0 right-0 z-[100] pointer-events-none">
         <div className="pointer-events-auto">
           <ElevationChart />
         </div>
       </div>
 
-      {/* ── Toolbar ── */}
       <Toolbar
         onOpenGPXModal={() => setGPXModalOpen(true)}
         onOpenHistory={() => setHistoryOpen(true)}
         onCenterMap={handleCenterMap}
       />
 
-      {/* ── Modals ── */}
-      <GPXModal
-        isOpen={gpxModalOpen}
-        onClose={() => setGPXModalOpen(false)}
-      />
+      <GPXModal isOpen={gpxModalOpen} onClose={() => setGPXModalOpen(false)} />
       <TrackHistoryPanel
         isOpen={historyOpen}
         onClose={() => setHistoryOpen(false)}

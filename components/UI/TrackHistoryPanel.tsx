@@ -58,10 +58,10 @@ export default function TrackHistoryPanel({ isOpen, onClose, onLoadTrack }: Trac
   return (
     <div
       className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+      style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-[#111518] border border-[#1f2a32] rounded-t-2xl sm:rounded-2xl w-full sm:w-[480px] max-h-[80vh] flex flex-col">
+      <div className="bg-[#111518] border border-[#1f2a32] rounded-t-2xl sm:rounded-2xl w-full sm:w-[480px] flex flex-col" style={{ maxHeight: "80dvh" }}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#1f2a32] flex-shrink-0">

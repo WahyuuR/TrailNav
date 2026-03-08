@@ -2,10 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Leaflet base styles ── */
 @import 'leaflet/dist/leaflet.css';
 
-/* ── Custom Leaflet popup styling ── */
+/* ── Viewport fix for mobile browsers (address bar shrink) ── */
+html, body {
+  height: 100%;
+  height: -webkit-fill-available;
+}
+
+/* ── Safe area meta support ── */
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Leaflet popup ── */
 .leaflet-popup-content-wrapper {
   background: #111518 !important;
   border: 1px solid #1f2a32 !important;
@@ -42,12 +52,23 @@
 .leaflet-control-attribution {
   background: rgba(10, 13, 15, 0.7) !important;
   color: #607d8b !important;
-  font-size: 10px !important;
+  font-size: 9px !important;
   border-radius: 6px 0 0 0 !important;
+  /* Push above toolbar + safe area */
+  margin-bottom: calc(56px + var(--safe-bottom)) !important;
 }
 
 .leaflet-control-attribution a {
   color: #00b8d4 !important;
+}
+
+/* ── Prevent text selection on map interactions ── */
+.leaflet-container {
+  font-family: 'Barlow', sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  /* Fix 100vh on mobile browsers */
+  height: 100dvh !important;
 }
 
 /* ── Scrollbar ── */
@@ -55,9 +76,16 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #1f2a32; border-radius: 2px; }
 
-/* ── Prevent text selection on map interactions ── */
-.leaflet-container {
-  font-family: 'Barlow', sans-serif;
-  user-select: none;
-  -webkit-user-select: none;
+/* ── Tap highlight removal on mobile ── */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Input autofill dark mode ── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #e8f0f4;
+  -webkit-box-shadow: 0 0 0 1000px #111518 inset;
+  transition: background-color 5000s ease-in-out 0s;
 }

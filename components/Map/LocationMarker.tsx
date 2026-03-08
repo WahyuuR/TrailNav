@@ -36,7 +36,7 @@ export default function LocationMarker() {
   const map = useMap()
   const { currentGPS, isTracking } = useMapStore()
 
-  // Auto-pan when tracking
+  // Auto-pan when actively tracking
   useEffect(() => {
     if (isTracking && currentGPS) {
       map.panTo([currentGPS.lat, currentGPS.lon], { animate: true, duration: 0.5 })
@@ -51,18 +51,11 @@ export default function LocationMarker() {
         center={[currentGPS.lat, currentGPS.lon]}
         radius={currentGPS.accuracy}
         pathOptions={{
-          color: '#00e5a0',
-          fillColor: '#00e5a0',
-          fillOpacity: 0.08,
-          weight: 1,
-          opacity: 0.4,
+          color: '#00e5a0', fillColor: '#00e5a0',
+          fillOpacity: 0.08, weight: 1, opacity: 0.4,
         }}
       />
-      <Marker
-        position={[currentGPS.lat, currentGPS.lon]}
-        icon={locationIcon}
-        zIndexOffset={1000}
-      />
+      <Marker position={[currentGPS.lat, currentGPS.lon]} icon={locationIcon} zIndexOffset={1000} />
     </>
   )
 }

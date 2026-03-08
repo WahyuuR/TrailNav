@@ -1,14 +1,23 @@
 import { create } from 'zustand'
 import type { MapStoreState, GPSState, GPSStatus, TrackPoint, GPXData, MapLayer, Waypoint } from '@/types'
 import { haversine } from '@/lib/geo'
+import type { Map as LeafletMap } from 'leaflet'
 
-export const useMapStore = create<MapStoreState>((set, get) => ({
+// Extend store state with map instance (not serialized — just a ref)
+interface MapStoreStateWithMap extends MapStoreState {
+  _mapInstance: LeafletMap | null
+  setMapInstance: (map: LeafletMap | null) => void
+}
+
+export const useMapStore = create<MapStoreStateWithMap>((set, get) => ({
+  // ─── Internal map instance ────────────────────────────────
+  _mapInstance: null,
+  setMapInstance: (map) => set({ _mapInstance: map }),
+
   // ─── GPS ─────────────────────────────────────────────────
   gpsStatus: 'off',
   currentGPS: null,
-
   setGPSStatus: (status: GPSStatus) => set({ gpsStatus: status }),
-
   setCurrentGPS: (gps: GPSState | null) => set({ currentGPS: gps }),
 
   // ─── Tracking ────────────────────────────────────────────
@@ -35,15 +44,11 @@ export const useMapStore = create<MapStoreState>((set, get) => ({
 
   addTrackPoint: (point: TrackPoint) => {
     const { trackPoints, trackDistance, elevationGain, elevationLoss, lastElevation } = get()
-
-    // Distance
     let newDistance = trackDistance
     if (trackPoints.length > 0) {
       const prev = trackPoints[trackPoints.length - 1]
       newDistance += haversine(prev.lat, prev.lon, point.lat, point.lon)
     }
-
-    // Elevation gain/loss
     let newGain = elevationGain
     let newLoss = elevationLoss
     if (lastElevation !== null) {
@@ -51,7 +56,6 @@ export const useMapStore = create<MapStoreState>((set, get) => ({
       if (diff > 0.5) newGain += diff
       else if (diff < -0.5) newLoss += Math.abs(diff)
     }
-
     set({
       trackPoints: [...trackPoints, point],
       trackDistance: newDistance,
@@ -63,7 +67,6 @@ export const useMapStore = create<MapStoreState>((set, get) => ({
 
   // ─── GPX ─────────────────────────────────────────────────
   gpxData: null,
-
   setGPXData: (data: GPXData | null) => set({ gpxData: data }),
 
   // ─── Map UI ──────────────────────────────────────────────
@@ -73,18 +76,13 @@ export const useMapStore = create<MapStoreState>((set, get) => ({
   isAddingWaypoint: false,
 
   setActiveLayer: (layer: MapLayer) => set({ activeLayer: layer }),
-
   addWaypoint: (waypoint: Waypoint) =>
     set((state) => ({
       waypoints: [...state.waypoints, waypoint],
       waypointCount: state.waypointCount + 1,
     })),
-
   removeWaypoint: (id: string) =>
-    set((state) => ({
-      waypoints: state.waypoints.filter((w) => w.id !== id),
-    })),
-
+    set((state) => ({ waypoints: state.waypoints.filter((w) => w.id !== id) })),
   setIsAddingWaypoint: (value: boolean) => set({ isAddingWaypoint: value }),
 
   // ─── Clear ───────────────────────────────────────────────
@@ -103,3 +101,9 @@ export const useMapStore = create<MapStoreState>((set, get) => ({
       isAddingWaypoint: false,
     }),
 }))
+
+// ─── Convenience helpers — call from anywhere, no ref needed ─
+export const mapZoomIn  = () => useMapStore.getState()._mapInstance?.zoomIn()
+export const mapZoomOut = () => useMapStore.getState()._mapInstance?.zoomOut()
+export const mapSetView = (lat: number, lon: number, zoom = 16) =>
+  useMapStore.getState()._mapInstance?.setView([lat, lon], zoom, { animate: true })
